@@ -1,0 +1,43 @@
+{
+  "id": "pf2e-hex",
+  "title": "PF2e Hex Enhancements",
+  "description": "Collection of enhancements to make using hex grids in pf2e more enjoyable.",
+  "version": "#{VERSION}#",
+  "compatibility": {
+    "minimum": "12",
+    "verified": "12.330",
+    "maximum": "12"
+  },
+  "authors": [
+    {
+      "name": "FolkvangrForgent"
+    }
+  ],
+  "relationships": {
+    "systems": [
+            {
+                "id": "pf2e",
+                "type": "system",
+                "compatibility": {
+                    "minimum": "6.1.0"
+                }
+            }
+        ],
+    "requires": [
+        {
+            "id": "lib-wrapper",
+            "type": "module",
+            "compatibility": {
+                "minimum": "1.0.0.0",
+                "verified": "1.12.14.0"
+            }
+        }
+    ]
+  },
+  "esmodules": [
+    "src/module.js"
+  ],
+  "url": "#{URL}#",
+  "manifest": "#{MANIFEST}#",
+  "download": "#{DOWNLOAD}#"
+}
