@@ -1,51 +1,43 @@
 {
-  "id": "module",
-  "title": "New Module",
-  "description": "",
+  "id": "pf2e-hex",
+  "title": "PF2e Hex Enhancements",
+  "description": "Collection of enhancements to make using hex grids in pf2e more enjoyable.",
   "version": "#{VERSION}#",
-  "library": "false",
-  "manifestPlusVersion": "1.2.0",
   "compatibility": {
-    "minimum": 10,
-    "verified": 10,
-    "maximum": 11
+    "minimum": "12",
+    "verified": "12.330",
+    "maximum": "12"
   },
   "authors": [
     {
-      "name": "The League of Extraordinary FVTT Developers",
-      "url": "https://github.com/League-of-Foundry-Developers",
-      "discord": "discordID#0001"
+      "name": "FolkvangrForgent"
     }
   ],
   "relationships": {
-    "systems": [],
-    "requires": []
+    "systems": [
+            {
+                "id": "pf2e",
+                "type": "system",
+                "compatibility": {
+                    "minimum": "6.1.0"
+                }
+            }
+        ],
+    "requires": [
+        {
+            "id": "lib-wrapper",
+            "type": "module",
+            "compatibility": {
+                "minimum": "1.0.0.0",
+                "verified": "1.12.14.0"
+            }
+        }
+    ]
   },
   "esmodules": [
-    "scripts/module.js"
-  ],
-  "scripts": [
-    "scripts/lib/lib.js"
-  ],
-  "styles": [
-    "styles/module.css"
-  ],
-  "languages": [
-    {
-      "lang": "en",
-      "name": "English",
-      "path": "languages/en.json"
-    }
+    "src/module.js"
   ],
   "url": "#{URL}#",
   "manifest": "#{MANIFEST}#",
-  "download": "#{DOWNLOAD}#",
-  "license": "LICENSE",
-  "readme": "README.md",
-  "media": [
-    {
-      "type": "icon",
-      "url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
-    }
-  ]
+  "download": "#{DOWNLOAD}#"
 }
