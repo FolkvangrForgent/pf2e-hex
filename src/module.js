@@ -22,6 +22,7 @@ Hooks.on('canvasInit', setGridTemplates);
 // helper function to delay force the setting on delays
 async function setGridTemplatesInitially() {
     if (game.user.isGM) {
+        setGridTemplates(game.canvas);
         // this is really stupid but the chat messages error on hex grid if gridTemplates is set to true and there isn't an existing template. IDK if this is a core or pf2e bug (maybe a bit of both)
         let workaround_templates = await game.canvas.scene.createEmbeddedDocuments("MeasuredTemplate", [{}]);
         setTimeout(() => {
@@ -33,100 +34,121 @@ async function setGridTemplatesInitially() {
 // hook on ready as pf2e system also have a "ready" hook that sets the setting (it is hacky yes but it should work)
 Hooks.once("ready", setGridTemplatesInitially);
 
-Hooks.once("ready", () => {
-    game.settings.set("core", "gridTemplates", false);
-});
-
 // HIGHLIGHT TEMPLATE WALL COLLISIONS
 
-// function to process hex grid maps and highlight them (logic also works on square but it isn't active on there)
-async function hexGridHightlight(template, data)  {
-    setGridTemplates(canvas);
-
-    if (canvas.grid.isHexagonal) {
+// logic for wall collisions for template highlight
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype.highlightGrid', function(wrapped) {
+        if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
+            return wrapped();
+        }
+        // TODO update when system support is added to templates
         const collisionType = "move";
-
-        const gridPositions = template._getGridHighlightPositions()
-
-        canvas.interface.grid.getHighlightLayer(template.highlightId).clear();
-
-        for (const position of gridPositions) {
+        canvas.interface.grid.clearHighlightLayer(this.highlightId);
+        const positions = this._getGridHighlightPositions()
+        for (const {x, y} of positions) {
             const hasCollision = CONFIG.Canvas.polygonBackends[collisionType].testCollision(
-                template.center,
+                this.center,
                 {
-                    x: position.x + (canvas.grid.size / 2),
-                    y: position.y + (canvas.grid.size / 2),
+                    x: x + (canvas.grid.size / 2),
+                    y: y + (canvas.grid.size / 2),
                 },
                 {
                     type: collisionType,
                     mode: "any",
                 });
             if (hasCollision) {
-                canvas.interface.grid.highlightPosition(template.highlightId, {
-                    x: position.x,
-                    y: position.y,
-                    border: 0x000001,
+                canvas.interface.grid.highlightPosition(this.highlightId, {
+                    x: x,
+                    y: y,
+                    border: this.document.borderColor,
                     color: 0x000000,
                 });
             } else {
-                canvas.interface.grid.highlightPosition(template.highlightId, {
-                    x: position.x,
-                    y: position.y,
-                    border: template.document.borderColor,
-                    color: template.document.fillColor,
+                canvas.interface.grid.highlightPosition(this.highlightId, {
+                    x: x,
+                    y: y,
+                    border: this.document.borderColor,
+                    color: this.document.fillColor,
                 });
             }
         }
-    }
-}
-// hacky hook to add collisions highlights like square
-Hooks.on("refreshMeasuredTemplate", hexGridHightlight);
+    }, 'MIXED');
+});
 
 // SNAP POINT
 
-// logic for setting the template grid snapping
-function setTemplateGridSnapping() {
+// hex grid snapper
+function hexSnapper(type, point) {
+    const M = CONST.GRID_SNAPPING_MODES;
+    let snappingMode = 0;
+    switch (type) {
+        case "burst":
+            snappingMode = M.VERTEX;
+            break;
+        case "emanation":
+            snappingMode = M.CENTER | M.VERTEX;
+            break;
+        case "cone":
+            snappingMode = M.CENTER | M.EDGE_MIDPOINT | M.VERTEX;
+            break;
+        case "line":
+            snappingMode = M.EDGE_MIDPOINT | M.VERTEX;
+            break;
+        default:
+            snappingMode = M.CENTER | M.VERTEX;
+            break;
+    }
+    return canvas.grid.getSnappedPoint(point, {
+        mode: snappingMode,
+        resolution: 1,
+    });
+}
+// logic for snapping the template to the grid (movement)
+Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'TemplateLayer.prototype.getSnappedPoint', function(wrapped, point) {
-        let template = this.preview.children.at(0);
-        if (!template) {
-            // TODO - need work around for chat templates
-        }
-        if (template && canvas && canvas.ready && canvas.grid && canvas.grid.isHexagonal) {
-            const M = CONST.GRID_SNAPPING_MODES;
-            let snappingMode = 0;
-            switch (template.areaShape) {
-                case "burst":
-                    snappingMode = M.VERTEX;
-                    break;
-                case "emanation":
-                    snappingMode = M.CENTER | M.VERTEX;
-                    break;
-                case "cone":
-                    snappingMode = M.CENTER | M.EDGE_MIDPOINT | M.VERTEX;
-                    break;
-                case "line":
-                    snappingMode = M.EDGE_MIDPOINT | M.VERTEX;
-                    break;
-                default:
-                    snappingMode = M.CENTER | M.VERTEX;
-                    break;
-            }
-            return canvas.grid.getSnappedPoint(point, {
-                mode: snappingMode,
-                resolution: 1,
-            });
-        } else {
+        if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
             return wrapped(point);
         }
+        // TODO is there a way that also works on creation?
+        let template = this.preview.children.at(0);
+        if (template) {
+            return hexSnapper(template.areaShape, point);
+        } else {
+            return { x: point.x, y: point.y };
+        }
     }, 'MIXED');
-}
-// hook to override default template snapping
-Hooks.once("libWrapper.Ready", setTemplateGridSnapping);
+});
+// logic for snapping the template to the grid (placement)
+Hooks.on("preCreateMeasuredTemplate", (template) => {
+    if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
+        return;
+    }
+    if (!template || template.destroyed) return;
+    let point = hexSnapper(template.areaShape, { x: template.x, y: template.y });
+    template.updateSource({
+        x: point.x,
+        y: point.y,
+    });
+});
+// logic for snapping the template shape to the grid
+Hooks.on("refreshMeasuredTemplate", (template) => {
+    if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
+        return;
+    }
+    if (!template || template.destroyed) return;
+    let point = hexSnapper(template.areaShape, { x: template.x, y: template.y });
+    if ((template.x !== point.x) || (template.y !== point.y)) {
+        template.x = point.x;
+        template.y = point.y;
+    }
+});
+
 
 // ANGLE SNAPPING
 
-// logic for setting the template angle snapping (pretty much ripped from pf2e)
-function setTemplateAngleSnapping() {
+// logic for setting the template angle snapping (pretty much ripped from pf2e and adjusted to hex grids)
+Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'TemplateLayer.prototype._onDragLeftMove', function(wrapped, event) {
         if (!canvas.ready || !canvas.scene || !canvas.grid.isHexagonal) {
             return wrapped(event);
@@ -159,6 +181,4 @@ function setTemplateAngleSnapping() {
         // Draw the pending shape
         template.refresh();
     }, 'MIXED');
-}
-// hook to override default template snapping (canvasReady seems to be a good hook point)
-Hooks.once("libWrapper.Ready", setTemplateAngleSnapping);
+});
