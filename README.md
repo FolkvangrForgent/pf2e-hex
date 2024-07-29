@@ -4,7 +4,7 @@
 
 # PF2e Hex Enhancements
 
-Enchantments for the pf2e system when using Hex Grids. Some of these changes might be bordering on homebrew but they should generally be small fixes.
+Enchantments for the pf2e system when using Hex Grids. Some of these changes might be bordering on homebrew but they should generally be small fixes or quality of life features.
 
 ## Features
 
