@@ -17,3 +17,4 @@ Enchantments for the pf2e system when using Hex Grids. Some of these changes mig
     - `burst` snaps to vertices
     - `line` snaps to midpoints or vertices
 - Force `gridTemplates` on for hex grids
+- Snap Circle and Cone to 30 degree angle increments

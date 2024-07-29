@@ -84,14 +84,14 @@ Hooks.on("refreshMeasuredTemplate", hexGridHightlight);
 
 // SNAP POINT
 
-// logic for setting the template snapping
-function setTemplateSnapping() {
+// logic for setting the template grid snapping
+function setTemplateGridSnapping() {
     libWrapper.register('pf2e-hex', 'TemplateLayer.prototype.getSnappedPoint', function(wrapped, point) {
         let template = this.preview.children.at(0);
         if (!template) {
             // TODO - need work around for chat templates
         }
-        if (template && canvas && canvas.grid && canvas.grid.isHexagonal) {
+        if (template && canvas && canvas.ready && canvas.grid && canvas.grid.isHexagonal) {
             const M = CONST.GRID_SNAPPING_MODES;
             let snappingMode = 0;
             switch (template.areaShape) {
@@ -120,5 +120,45 @@ function setTemplateSnapping() {
         }
     }, 'MIXED');
 }
+// hook to override default template snapping
+Hooks.once("libWrapper.Ready", setTemplateGridSnapping);
+
+// ANGLE SNAPPING
+
+// logic for setting the template angle snapping (pretty much ripped from pf2e)
+function setTemplateAngleSnapping() {
+    libWrapper.register('pf2e-hex', 'TemplateLayer.prototype._onDragLeftMove', function(wrapped, event) {
+        if (!canvas.ready || !canvas.scene || !canvas.grid.isHexagonal) {
+            return wrapped(event);
+        }
+
+        const { destination, preview: template, origin } = event.interactionData;
+        if (!template || template.destroyed) return;
+
+        const dimensions = canvas.dimensions;
+
+        // Snap the destination to the grid
+        const { x, y } = canvas.templates.getSnappedPoint(destination);
+        destination.x = x;
+        destination.y = y;
+        const ray = new Ray(origin, destination);
+        const ratio = dimensions.size / dimensions.distance;
+        const document = template.document;
+
+        // Update the shape data
+        if (["cone", "circle"].includes(document.t)) {
+            const snapAngle = Math.PI / 6;
+            document.direction = Math.toDegrees(Math.floor((ray.angle + Math.PI * 0.125) / snapAngle) * snapAngle);
+        } else {
+            document.direction = Math.toDegrees(ray.angle);
+        }
+
+        const increment = Math.max(ray.distance / ratio, dimensions.distance);
+        document.distance = Math.ceil(increment / dimensions.distance) * dimensions.distance;
+
+        // Draw the pending shape
+        template.refresh();
+    }, 'MIXED');
+}
 // hook to override default template snapping (canvasReady seems to be a good hook point)
-Hooks.once("libWrapper.Ready", setTemplateSnapping);
+Hooks.once("libWrapper.Ready", setTemplateAngleSnapping);
