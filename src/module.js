@@ -1,52 +1,94 @@
-
-// TEMPLATES
-
-// FORCE gridTemplates SETTING
-
-// function to change the gridTemplates based on the current scene grid type
-async function setGridTemplates(canvas) {
-    if (game.user.isGM) {
-        if (canvas.grid.isSquare) {
-            if (game.settings.get("core", "gridTemplates")) {
-                await game.settings.set("core", "gridTemplates", false);
-            }
-        } else if (canvas.grid.isHexagonal) {
-            if (!game.settings.get("core", "gridTemplates")) {
-                await game.settings.set("core", "gridTemplates", true);
-            }
-        }
-    }
-}
-// force grid setting if canvas init happens
-Hooks.on('canvasInit', setGridTemplates);
-// helper function to delay force the setting on delays
-async function setGridTemplatesInitially() {
-    if (game.user.isGM) {
-        setGridTemplates(game.canvas);
-        // this is really stupid but the chat messages error on hex grid if gridTemplates is set to true and there isn't an existing template. IDK if this is a core or pf2e bug (maybe a bit of both)
-        let workaround_templates = await game.canvas.scene.createEmbeddedDocuments("MeasuredTemplate", [{}]);
-        setTimeout(() => {
-            setGridTemplates(game.canvas);
-            game.canvas.scene.deleteEmbeddedDocuments("MeasuredTemplate", [workaround_templates[0].id]);
-        }, 100);
-    }
-}
-// hook on ready as pf2e system also have a "ready" hook that sets the setting (it is hacky yes but it should work)
-Hooks.once("ready", setGridTemplatesInitially);
-
-// HIGHLIGHT TEMPLATE WALL COLLISIONS
-
-// logic for wall collisions for template highlight
+// EMULATE gridTemplates SETTING
 Hooks.once("libWrapper.Ready", () => {
-    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype.highlightGrid', function(wrapped) {
-        if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._computeShape', function(wrapped) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
             return wrapped();
         }
-        // TODO update when system support is added to templates
-        const collisionType = "move";
+        const {t, distance, direction, angle, width} = this.document;
+        switch (t) {
+            case "circle":
+                return new PIXI.Polygon(canvas.grid.getCircle({x: 0, y: 0}, distance));
+            case "cone":
+                return new PIXI.Polygon(canvas.grid.getCone({x: 0, y: 0}, distance, direction, angle));
+            case "rect":
+                let endpoint = canvas.grid.getTranslatedPoint({x: 0, y: 0}, direction, distance);
+                return new PIXI.Rectangle(0, 0, endpoint.x, endpoint.y).normalize();
+            case "ray":
+                const p00 = Ray.fromAngle(0, 0, Math.toRadians(direction - 90), 0).B;
+                let p10 = canvas.grid.getTranslatedPoint(p00, direction, distance);
+                return new PIXI.Polygon(p00.x, p00.y, p10.x, p10.y);
+        }
+    }, 'MIXED');
+});
+
+// EMULATE gridTemplates SETTING
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._refreshShape', function(wrapped) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
+            return wrapped();
+        }
+        const {x, y, direction, distance} = this.document;
+        this.ray = new Ray({x, y}, canvas.grid.getTranslatedPoint({x, y}, direction, distance));
+        this.shape = this._computeShape();
+    }, 'MIXED');
+});
+
+// EMULATE gridTemplates SETTING & ANGLE SNAPPING
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'TemplateLayer.prototype._onDragLeftMove', function(wrapped, event) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
+            return wrapped(event);
+        }
+        // unpack data from event
+        const { destination, preview, origin } = event.interactionData;
+        // compute the ray for angle
+        const ray = new Ray(origin, destination);
+        // compute the snapped distance for the measured template
+        const distance = (Math.round(canvas.grid.measurePath([origin, destination]).distance / canvas.grid.distance) * canvas.grid.distance);
+        // compute custom angle snapping
+        let snappedAngle;
+        if (["cone", "circle"].includes(preview.document.t)) {
+            const snapAngle = Math.PI / 6;
+            snappedAngle = Math.toDegrees(Math.floor((ray.angle + Math.PI * 0.125) / snapAngle) * snapAngle);
+        } else {
+            snappedAngle = Math.toDegrees(ray.angle);
+        }
+        // Update the preview object angle
+        preview.document.direction = Math.normalizeDegrees(snappedAngle);
+        // Update the preview object distance
+        preview.document.distance = distance;
+        // set refresh to true
+        preview.renderFlags.set({refreshShape: true});
+    }, 'MIXED');
+});
+
+// HIGHLIGHT TEMPLATE WALL COLLISIONS
+// TODO get collision type from template when pf2e system support is added
+// TODO add WallHeight support to collision checks
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype.highlightGrid', function(wrapped) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
+            return wrapped();
+        }
+        // highlight border color
+        const borderColor = this.document.borderColor;
+        // highlight hex normal color
+        const normalColor = this.document.fillColor;
+        // highlight hex collided color
+        const collidedColor = new Color();
+        // clear existing highlight layer
         canvas.interface.grid.clearHighlightLayer(this.highlightId);
-        const positions = this._getGridHighlightPositions()
+        // get highlight positions
+        const positions = this._getGridHighlightPositions();
+        // setup collision type
+        const collisionType = "move";
+        // iterate over highlight positions checking and coloring accordingly
         for (const {x, y} of positions) {
+            // check for collision
             const hasCollision = CONFIG.Canvas.polygonBackends[collisionType].testCollision(
                 this.center,
                 {
@@ -57,28 +99,49 @@ Hooks.once("libWrapper.Ready", () => {
                     type: collisionType,
                     mode: "any",
                 });
-            if (hasCollision) {
-                canvas.interface.grid.highlightPosition(this.highlightId, {
-                    x: x,
-                    y: y,
-                    border: this.document.borderColor,
-                    color: 0x000000,
-                });
-            } else {
-                canvas.interface.grid.highlightPosition(this.highlightId, {
-                    x: x,
-                    y: y,
-                    border: this.document.borderColor,
-                    color: this.document.fillColor,
-                });
-            }
+            // color based on collision
+            canvas.interface.grid.highlightPosition(this.highlightId, {
+                x: x,
+                y: y,
+                border: borderColor,
+                color: hasCollision ? collidedColor : normalColor,
+            });
         }
     }, 'MIXED');
 });
 
-// SNAP POINT
+// ENHANCED HIGHLIGHTING
+// TODO look into why the origin is not snapped till placed
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._getGridHighlightPositions', function(wrapped) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
+            return wrapped();
+        }
+        // ensure x,y origin is snapped
+        const origin = hexSnapper(this.areaShape, {x: this.document.x, y: this.document.y});
+        this.document.x = origin.x;
+        this.document.y = origin.y;
+        // only override logic on line template
+        if (this.areaShape != "line") {
+            return wrapped();
+        }
+        // get constants
+        const {direction, distance} = this.document;
+        // calculate ray
+        const ray = new Ray(canvas.grid.getTranslatedPoint({x: origin.x, y: origin.y}, direction, (canvas.grid.distance * 0.5)), canvas.grid.getTranslatedPoint({x: origin.x, y: origin.y}, direction, distance));
+        // calculate direct grid points along the ray and save the highlight point of the position
+        const positions = [];
+        for (const position of canvas.grid.getDirectPath([ray.A, ray.B])) {
+            positions.push(canvas.grid.getTopLeftPoint(position));
+        }
+        // limit the number of points to the distance
+        return positions.slice(0, (distance / canvas.grid.distance)+.1)
+    }, 'MIXED');
+});
 
-// hex grid snapper
+
+// SNAP POINT helper
 function hexSnapper(type, point) {
     const M = CONST.GRID_SNAPPING_MODES;
     let snappingMode = 0;
@@ -104,7 +167,7 @@ function hexSnapper(type, point) {
         resolution: 1,
     });
 }
-// logic for snapping the template to the grid (movement)
+// SNAP POINT (movement)
 Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'TemplateLayer.prototype.getSnappedPoint', function(wrapped, point) {
         if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
@@ -119,7 +182,7 @@ Hooks.once("libWrapper.Ready", () => {
         }
     }, 'MIXED');
 });
-// logic for snapping the template to the grid (placement)
+// SNAP POINT (placement)
 Hooks.on("preCreateMeasuredTemplate", (template) => {
     if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
         return;
@@ -131,7 +194,7 @@ Hooks.on("preCreateMeasuredTemplate", (template) => {
         y: point.y,
     });
 });
-// logic for snapping the template shape to the grid
+// SNAP POINT (chat movement)
 Hooks.on("refreshMeasuredTemplate", (template) => {
     if (!canvas.ready || !canvas.grid || !canvas.grid.isHexagonal) {
         return;
@@ -142,43 +205,4 @@ Hooks.on("refreshMeasuredTemplate", (template) => {
         template.x = point.x;
         template.y = point.y;
     }
-});
-
-
-// ANGLE SNAPPING
-
-// logic for setting the template angle snapping (pretty much ripped from pf2e and adjusted to hex grids)
-Hooks.once("libWrapper.Ready", () => {
-    libWrapper.register('pf2e-hex', 'TemplateLayer.prototype._onDragLeftMove', function(wrapped, event) {
-        if (!canvas.ready || !canvas.scene || !canvas.grid.isHexagonal) {
-            return wrapped(event);
-        }
-
-        const { destination, preview: template, origin } = event.interactionData;
-        if (!template || template.destroyed) return;
-
-        const dimensions = canvas.dimensions;
-
-        // Snap the destination to the grid
-        const { x, y } = canvas.templates.getSnappedPoint(destination);
-        destination.x = x;
-        destination.y = y;
-        const ray = new Ray(origin, destination);
-        const ratio = dimensions.size / dimensions.distance;
-        const document = template.document;
-
-        // Update the shape data
-        if (["cone", "circle"].includes(document.t)) {
-            const snapAngle = Math.PI / 6;
-            document.direction = Math.toDegrees(Math.floor((ray.angle + Math.PI * 0.125) / snapAngle) * snapAngle);
-        } else {
-            document.direction = Math.toDegrees(ray.angle);
-        }
-
-        const increment = Math.max(ray.distance / ratio, dimensions.distance);
-        document.distance = Math.ceil(increment / dimensions.distance) * dimensions.distance;
-
-        // Draw the pending shape
-        template.refresh();
-    }, 'MIXED');
 });

@@ -1,3 +1,11 @@
+# 1.2.0
+
+- Deprecate use of `gridTemplates` in favor of wrapping functions
+    - provides cleaner overall behavior
+- Templates now use custom highlighting logic
+    - `line` properly highlights grid
+    - fix for highlighting not snapping to grid
+
 # 1.1.0
 
 - Templates now use wrapper instead of hook for wall collisions

@@ -4,17 +4,22 @@
 
 # PF2e Hex Enhancements
 
-Enchantments for the pf2e system when using Hex Grids. Some of these changes might be bordering on homebrew but they should generally be small fixes or quality of life features.
+Enchantments for the pf2e system when using Hex Grids. Some of these changes might be bordering on homebrew but they should generally be small fixes or quality of life features. Some of the features may only fully work on pf2e versions newer than 6.1.3 as this started as some removal of hex code from pf2e core.
 
 ## Features
 
 ### Templates
 
-- Wall Collision Coloring
-- Snapping Logic
-    - `cone` snaps to center or midpoints or vertices
-    - `emanation` snaps to center or vertices
-    - `burst` snaps to vertices
-    - `line` snaps to midpoints or vertices
-- Force `gridTemplates` on for hex grids
-- Snap Circle and Cone to 30 degree angle increments
+- Snapping
+    - Grid
+        - `cone` snaps to center or midpoints or vertices
+        - `emanation` snaps to center or vertices
+        - `burst` snaps to vertices
+        - `line` snaps to midpoints or vertices
+    - Angle
+        - `cone`, `emanation`, and `burst` snaps to 30 degree increments
+- Highlights
+    - Improve rendering when not placed on grid
+    - Accurate `line` paths
+    - Wall Collision Coloring
+- Emulate `gridTemplates` behavior when on hex grids
