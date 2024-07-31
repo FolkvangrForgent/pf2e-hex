@@ -1,3 +1,7 @@
+# 1.2.1
+
+- Template Snapping is vastly simplified
+
 # 1.2.0
 
 - Deprecate use of `gridTemplates` in favor of wrapping functions
