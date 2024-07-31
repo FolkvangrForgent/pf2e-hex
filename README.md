@@ -4,7 +4,9 @@
 
 # PF2e Hex Enhancements
 
-Enchantments for the pf2e system when using Hex Grids. Some of these changes might be bordering on homebrew but they should generally be small fixes or quality of life features. Some of the features may only fully work on pf2e versions newer than 6.1.3 as this started as some removal of hex code from pf2e core.
+This module aims to enhance the use of hex grids while using the pf2e system.
+
+**WARNING** - This module uses a lot of function patching and so it is suggested to run it on the exact version of FoundryVTT and PF2e that it is verified for. It will likely run fine but even now some features will only fully work on the version after 6.1.3.
 
 ## Features
 
