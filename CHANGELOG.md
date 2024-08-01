@@ -1,6 +1,18 @@
+# 1.3.0
+
+- Template grid snapping
+    - `line` set to none
+    - `rectangle` set to none
+    -  properly works with chat message previews
+- Template angle snapping
+    - `rectangle` set to none
+- Rule based template buttons added in `Measurement Controls`
+- Template highlighting
+    - `line` reverted back to default behavior
+
 # 1.2.1
 
-- Template Snapping is vastly simplified
+- Template snapping is vastly simplified
 
 # 1.2.0
 

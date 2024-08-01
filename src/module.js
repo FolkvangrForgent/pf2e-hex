@@ -15,9 +15,11 @@ Hooks.once("libWrapper.Ready", () => {
                 let endpoint = canvas.grid.getTranslatedPoint({x: 0, y: 0}, direction, distance);
                 return new PIXI.Rectangle(0, 0, endpoint.x, endpoint.y).normalize();
             case "ray":
-                const p00 = Ray.fromAngle(0, 0, Math.toRadians(direction - 90), 0).B;
-                let p10 = canvas.grid.getTranslatedPoint(p00, direction, distance);
-                return new PIXI.Polygon(p00.x, p00.y, p10.x, p10.y);
+                const p00 = Ray.fromAngle(0, 0, Math.toRadians(direction - 90), width * canvas.dimensions.distancePixels / 2).B;
+                const p01 = Ray.fromAngle(0, 0, Math.toRadians(direction + 90), width * canvas.dimensions.distancePixels / 2).B;
+                const p10 = canvas.grid.getTranslatedPoint(p00, direction, distance);
+                const p11 = canvas.grid.getTranslatedPoint(p01, direction, distance);
+                return new PIXI.Polygon(p00.x, p00.y, p10.x, p10.y, p11.x, p11.y, p01.x, p01.y);
         }
     }, 'MIXED');
 });
@@ -32,6 +34,16 @@ Hooks.once("libWrapper.Ready", () => {
         const {x, y, direction, distance} = this.document;
         this.ray = new Ray({x, y}, canvas.grid.getTranslatedPoint({x, y}, direction, distance));
         this.shape = this._computeShape();
+    }, 'MIXED');
+});
+
+// SNAP POINT (chat fix)
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'TemplateLayer.prototype.getSnappedPoint', function(wrapped, point) {
+        if (!canvas.grid.isHexagonal) {
+            return wrapped(point);
+        }
+        return { x: point.x, y: point.y };
     }, 'MIXED');
 });
 
@@ -54,10 +66,7 @@ Hooks.once("libWrapper.Ready", () => {
                     snappingMode = M.CENTER | M.EDGE_MIDPOINT | M.VERTEX;
                     break;
                 case "line":
-                    snappingMode = M.EDGE_MIDPOINT | M.VERTEX;
-                    break;
                 default:
-                    snappingMode = M.CENTER | M.VERTEX;
                     break;
             }
             // get snapped position based on snapping mode
@@ -86,10 +95,17 @@ Hooks.once("libWrapper.Ready", () => {
         }
         // unpack data from event
         const { destination, preview, origin } = event.interactionData;
+        // set distance of template
+        console.log(preview.document.t)
+        if (preview.document.t === "rect") {
+            // unsnapped for rectangle
+            preview.document.distance = canvas.grid.measurePath([origin, destination]).distance
+        } else {
+            // compute the snapped distance for the measured template
+            preview.document.distance = (Math.round(canvas.grid.measurePath([origin, destination]).distance / canvas.grid.distance) * canvas.grid.distance);
+        }
         // compute the ray for angle
         const ray = new Ray(origin, destination);
-        // compute the snapped distance for the measured template
-        const distance = (Math.round(canvas.grid.measurePath([origin, destination]).distance / canvas.grid.distance) * canvas.grid.distance);
         // compute custom angle snapping
         let snappedAngle;
         if (["cone", "circle"].includes(preview.document.t)) {
@@ -100,8 +116,6 @@ Hooks.once("libWrapper.Ready", () => {
         }
         // Update the preview object angle
         preview.document.direction = Math.normalizeDegrees(snappedAngle);
-        // Update the preview object distance
-        preview.document.distance = distance;
         // set refresh to true
         preview.renderFlags.set({refreshShape: true});
     }, 'MIXED');
@@ -152,27 +166,190 @@ Hooks.once("libWrapper.Ready", () => {
     }, 'MIXED');
 });
 
-// ENHANCED HIGHLIGHTING
+// // ENHANCED HIGHLIGHTING
+// function hexPath(origin, direction, distance) {
+//     const positions = [];
+//     for (let i = 0; i <= distance; i++) {
+//         let point = canvas.grid.getTranslatedPoint(origin, direction, canvas.grid.distance * i);
+//         positions.push(canvas.grid.getTopLeftPoint(canvas.grid.getCube(point)));
+// let snapped = canvas.grid.getCenterPoint(canvas.grid.getCube(point));
+// let pg = new PIXI.Polygon(point.x, point.y, snapped.x, snapped.y);
+// canvas.interface.grid.addChild(new PIXI.Graphics().beginFill(0x000000, 0.5).lineStyle(2, 0x00FF00, 1).drawShape(pg));
+//     }
+//     return positions;
+// }
+
+// // ENHANCED HIGHLIGHTING
+// Hooks.once("libWrapper.Ready", () => {
+//     libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._getGridHighlightPositions', function(wrapped) {
+//         // only override logic on hexagonal grid
+//         if (!canvas.grid.isHexagonal) {
+//             return wrapped();
+//         }
+//         // only override logic on line template
+//         if (this.areaShape != "line") {
+//             return wrapped();
+//         }
+//         // get constants
+//         const {x, y, direction, distance, width} = this.document;
+//         // calculate how many rays to use for template
+//         const rayCount = Math.round(width / canvas.dimensions.distance);
+//         // calculate lateral offset
+//         const offset = (rayCount - 1) * 0.5
+//         // calculate direct grid points along rays and save the highlight point of the position
+//         const positions = [];
+//         for (let o = 0; o < rayCount; o++) {
+//             // calculate ray origin
+//             const origin = canvas.grid.getTranslatedPoint({x: x, y: y}, direction - 90, (offset - o) * canvas.grid.distance);
+// // calculate ray destination
+// const destination = canvas.grid.getTranslatedPoint(origin, direction , distance);
+// let pg = new PIXI.Polygon(origin.x, origin.y, destination.x, destination.y);
+// canvas.interface.grid.addChild(new PIXI.Graphics().beginFill(0x000000, 0.5).lineStyle(2, 0x0000ff, 1).drawShape(pg));
+//             // calculate positions for origin and add
+//             for (const position of hexPath(origin, direction, Math.round(distance / canvas.grid.distance))) {
+//                 // save relevant highlight position
+//                 positions.push(position);
+//             }
+//         }
+//         return positions;
+//     }, 'MIXED');
+// });
+
+// MEASUREMENT CONTROLS
+// TODO add toolclips
+Hooks.on("getSceneControlButtons", (controls) => {
+    // only override logic on hexagonal grid
+    if (!canvas || !canvas.ready || !canvas.grid.isHexagonal) {
+       return;
+    }
+    // find measureControls
+    const measureControls = controls.find((c) => c.name === "measure");
+    // ensure measureControls was found
+    if (measureControls === undefined) {
+        return;
+    }
+    // copy of some of the common controls from _getControlButtons
+    const commonControls = {
+        create: { heading: "CONTROLS.CommonCreate", reference: "CONTROLS.ClickDrag" },
+        move: { heading: "CONTROLS.CommonMove", reference: "CONTROLS.Drag" },
+        edit: { heading: "CONTROLS.CommonEdit", reference: "CONTROLS.DoubleClick" },
+        hide: { heading: "CONTROLS.CommonHide", reference: "CONTROLS.RightClick" },
+        delete: { heading: "CONTROLS.CommonDelete", reference: "CONTROLS.Delete" },
+        rotate: { heading: "CONTROLS.CommonRotate", content: "CONTROLS.ShiftOrCtrlScroll" },
+    };
+    // copy of build helper from _getControlButtons
+    const buildItems = (...items) => items.map(item => commonControls[item]);
+    // setup edited controls
+    measureControls.tools = [
+        {
+          name: "emanation",
+          title: "Emanation Template",
+          icon: "fa-regular fa-hexagon-xmark",
+          toolclip: {
+//            src: "toolclips/tools/measure-rect.webm",
+            heading: "Emanation Template",
+            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+          }
+        },
+        {
+          name: "burst",
+          title: "Burst Template",
+          icon: "fa-regular fa-hexagon",
+          toolclip: {
+//            src: "toolclips/tools/measure-rect.webm",
+            heading: "Burst Template",
+            items: buildItems("create", "move", "edit", "hide", "delete")
+          }
+        },
+        {
+          name: "cone",
+          title: "Cone Template",
+          icon: "fa-regular fa-rotate-270 fa-triangle",
+          toolclip: {
+//            src: "toolclips/tools/measure-rect.webm",
+            heading: "Cone Template",
+            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+          }
+        },
+        {
+          name: "line",
+          title: "Ray Template",
+          icon: "fa-regular fa-rotate-90 fa-pipe",
+          toolclip: {
+//            src: "toolclips/tools/measure-rect.webm",
+            heading: "Ray Template",
+            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+          }
+        },
+        {
+          name: "rect",
+          title: "CONTROLS.MeasureRect",
+          icon: "fa-regular fa-square",
+          toolclip: {
+//            src: "toolclips/tools/measure-rect.webm",
+            heading: "CONTROLS.MeasureRect",
+            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+          }
+        },
+        {
+          name: "clear",
+          title: "CONTROLS.MeasureClear",
+          icon: "fa-solid fa-trash",
+          visible: game.user.isGM,
+          onClick: () => canvas.templates.deleteAll(),
+          button: true
+        }
+      ]
+});
+
+// BUTTONS
 Hooks.once("libWrapper.Ready", () => {
-    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._getGridHighlightPositions', function(wrapped) {
+    libWrapper.register('pf2e-hex', 'TemplateLayer.prototype._onDragLeftStart', function(wrapped, event) {
         // only override logic on hexagonal grid
         if (!canvas.grid.isHexagonal) {
-            return wrapped();
+            return wrapped(event);
         }
-        // only override logic on line template
-        if (this.areaShape != "line") {
-            return wrapped();
+        // get current active tool
+        const tool = game.activeTool;
+        switch (tool) {
+            case "circle":
+            case "ray":
+                return;
+            case "burst":
+            case "emanation":
+            case "cone":
+            case "line":
+                const interaction = event.interactionData;
+                const previewData = {
+                    user: game.user.id,
+                    t: ((tool === "emanation") || (tool === "burst")) ? "circle" : (tool === "line") ? "ray" : tool,
+                    x: interaction.origin.x,
+                    y: interaction.origin.y,
+                    sort: Math.max(this.getMaxSort() + 1, 0),
+                    distance: 1,
+                    direction: 0,
+                    fillColor: game.user.color || "#FF0000",
+                    hidden: event.altKey,
+                    flags: {
+                        pf2e: {
+                            areaShape: tool
+                        }
+                    }
+                };
+                if ( tool === "cone") {
+                    previewData.angle = 60;
+                } else if ( tool === "line" ) {
+                    previewData.width = (CONFIG.MeasuredTemplate.defaults.width * canvas.dimensions.distance);
+                }
+                const cls = getDocumentClass("MeasuredTemplate");
+                const doc = new cls(previewData, {parent: canvas.scene});
+                // Create a preview MeasuredTemplate object
+                const template = new this.constructor.placeableClass(doc);
+                interaction.preview = this.preview.addChild(template);
+                template.draw();
+                return;
+            default:
+                return wrapped(event);
         }
-        // get constants
-        const {x, y, direction, distance} = this.document;
-        // calculate ray
-        const ray = new Ray(canvas.grid.getTranslatedPoint({x: x, y: y}, direction, (canvas.grid.distance * 0.5)), canvas.grid.getTranslatedPoint({x: x, y: y}, direction, distance));
-        // calculate direct grid points along the ray and save the highlight point of the position
-        const positions = [];
-        for (const position of canvas.grid.getDirectPath([ray.A, ray.B])) {
-            positions.push(canvas.grid.getTopLeftPoint(position));
-        }
-        // limit the number of points to the distance
-        return positions.slice(0, (distance / canvas.grid.distance)+.1)
     }, 'MIXED');
 });
