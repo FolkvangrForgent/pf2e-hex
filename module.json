@@ -19,7 +19,8 @@
                 "id": "pf2e",
                 "type": "system",
                 "compatibility": {
-                    "minimum": "6.1.0"
+                    "minimum": "6.2.0",
+                    "verified": "6.2.0"
                 }
             }
         ],

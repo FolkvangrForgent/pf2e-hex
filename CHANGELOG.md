@@ -1,3 +1,14 @@
+# 1.4.0
+
+- Add `hex` template shape that highlights a single hex
+- Template rendering
+    - outlines now only render on `line` and `rectangle`
+    - `emanation`,`burst`,`cone`, and `hex` now render the distance next to the origin of the template
+- Template angle snapping
+    - `cone` is now the only template to snap to 30 degree angle increments
+    - SHIFT + MouseWheel will rotate placed templates in 30 degree increments
+- fix error spam
+
 # 1.3.0
 
 - Template grid snapping
