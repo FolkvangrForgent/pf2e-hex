@@ -1,3 +1,9 @@
+# 1.4.2
+
+- Add localization support
+- Add setting support
+    - `cone` internal angle is now configurable
+
 # 1.4.1
 
 - Add toolclips to measurement tools

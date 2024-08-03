@@ -1,0 +1,16 @@
+{
+    "pf2e-hex": {
+        "template": {
+            "hex": "Hex Template",
+            "emanation": "Emanation Template",
+            "burst": "Burst Template",
+            "cone": "Cone Template",
+            "line": "Line Template",
+            "rect": "Rectangle Template"
+        },
+        "setting": {
+            "cone-template-angle-name": "Cone Template Angle",
+            "cone-template-angle-hint": "The internal angle to use for the cone template."
+        }
+    }
+}

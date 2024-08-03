@@ -34,3 +34,5 @@ This module aims to enhance the use of hex grids while using the PF2e system.
     - `emanation`, `burst`,`cone`, and `hex` do not render outline shape
 - Emulate `gridTemplates` behavior when on hex grids
 - Buttons for `emanation`, `burst`, `cone`, `line`,  `hex`, and `rectangle` in `Measurement Controls`
+- Settings
+    - `cone` internal angle can be configured (defaults to 60 degree)

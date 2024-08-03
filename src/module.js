@@ -57,17 +57,17 @@ Hooks.once("libWrapper.Ready", () => {
             const M = CONST.GRID_SNAPPING_MODES;
             let snappingMode = 0;
             switch (this.areaShape) {
-                case "burst":
-                    snappingMode = M.VERTEX;
+                case "hex":
+                    snappingMode = M.CENTER;
                     break;
                 case "emanation":
                     snappingMode = M.CENTER | M.VERTEX;
                     break;
+                case "burst":
+                    snappingMode = M.VERTEX;
+                    break;
                 case "cone":
                     snappingMode = M.CENTER | M.EDGE_MIDPOINT | M.VERTEX;
-                    break;
-                case "hex":
-                    snappingMode = M.CENTER;
                     break;
                 case "line":
                 default:
@@ -247,61 +247,61 @@ Hooks.on("getSceneControlButtons", (controls) => {
     measureControls.tools = [
         {
             name: "hex",
-            title: "Hex Template",
+            title: "pf2e-hex.template.hex",
             icon: "fa-solid fa-hexagon",
             toolclip: {
-                src: "/modules/pf2e-hex/src/hex.webm",
-                heading: "Hex Template",
+                src: "/modules/pf2e-hex/src/media/hex.webm",
+                heading: "pf2e-hex.template.hex",
                 items: buildItems("create", "move", "edit", "hide", "delete")
             }
         },
         {
             name: "emanation",
-            title: "Emanation Template",
+            title: "pf2e-hex.template.emanation",
             icon: "fa-regular fa-hexagon-xmark",
             toolclip: {
-                src: "/modules/pf2e-hex/src/emanation.webm",
-                heading: "Emanation Template",
+                src: "/modules/pf2e-hex/src/media/emanation.webm",
+                heading: "pf2e-hex.template.emanation",
                 items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
             }
         },
         {
             name: "burst",
-            title: "Burst Template",
+            title: "pf2e-hex.template.burst",
             icon: "fa-regular fa-hexagon",
             toolclip: {
-                src: "/modules/pf2e-hex/src/burst.webm",
-                heading: "Burst Template",
-                items: buildItems("create", "move", "edit", "hide", "delete")
+                src: "/modules/pf2e-hex/src/media/burst.webm",
+                heading: "pf2e-hex.template.burst",
+                items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
             }
         },
         {
             name: "cone",
-            title: "Cone Template",
+            title: "pf2e-hex.template.cone",
             icon: "fa-regular fa-rotate-270 fa-triangle",
             toolclip: {
-                src: "/modules/pf2e-hex/src/cone.webm",
-                heading: "Cone Template",
+                src: "/modules/pf2e-hex/src/media/cone.webm",
+                heading: "pf2e-hex.template.cone",
                 items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
             }
         },
         {
             name: "line",
-            title: "Line Template",
+            title: "pf2e-hex.template.line",
             icon: "fa-regular fa-rotate-90 fa-pipe",
             toolclip: {
-                src: "/modules/pf2e-hex/src/line.webm",
-                heading: "Line Template",
+                src: "/modules/pf2e-hex/src/media/line.webm",
+                heading: "pf2e-hex.template.line",
                 items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
             }
         },
         {
             name: "rect",
-            title: "CONTROLS.MeasureRect",
+            title: "pf2e-hex.template.rect",
             icon: "fa-regular fa-square",
             toolclip: {
-                src: "/modules/pf2e-hex/src/rect.webm",
-                heading: "CONTROLS.MeasureRect",
+                src: "/modules/pf2e-hex/src/media/rect.webm",
+                heading: "pf2e-hex.template.rect",
                 items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
             }
         },
@@ -352,7 +352,7 @@ Hooks.once("libWrapper.Ready", () => {
                     }
                 };
                 if ( tool === "cone") {
-                    previewData.angle = 60;
+                    previewData.angle = game.settings.get('pf2e-hex', 'cone-template-angle');
                 } else if ( tool === "line" ) {
                     previewData.width = (CONFIG.MeasuredTemplate.defaults.width * canvas.dimensions.distance);
                 }
@@ -429,3 +429,15 @@ Hooks.once("libWrapper.Ready", () => {
         return template.rotate(template.document.direction + delta, snap);
     }, 'MIXED');
 });
+
+// SETTINGS
+Hooks.once('init', () => {
+    game.settings.register("pf2e-hex", "cone-template-angle", {
+        name: "pf2e-hex.setting.cone-template-angle-name",
+        hint: "pf2e-hex.setting.cone-template-angle-hint",
+        scope: "world",
+        config: true,
+        type: Number,
+        default: 60
+    });
+})
