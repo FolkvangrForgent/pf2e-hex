@@ -4,9 +4,9 @@
 
 # PF2e Hex Enhancements
 
-This module aims to enhance the use of hex grids while using the PF2e system. Verified for FVTT 12.330 and PF2e 6.2.0.
+This module aims to enhance the use of hex grids while using the PF2e system.
 
-**WARNING** - This module uses a lot of function patching and so it is suggested to run it on the exact version of FoundryVTT and PF2e that it is verified for.
+**WARNING** - This module uses a lot of function patching and so it is suggested to run it on the exact version of FoundryVTT that it is verified for. Verified for FVTT 12.330.
 
 **NOTE** - There are no official area rules for rectangles in pf2e, as such I will try my best to leave their functionality as open as possible.
 

@@ -208,9 +208,23 @@ Hooks.once("libWrapper.Ready", () => {
 // MEASUREMENT CONTROLS
 // TODO add toolclips
 Hooks.on("getSceneControlButtons", (controls) => {
-    // only override logic on hexagonal grid
-    if (!canvas || !canvas.ready || !canvas.grid.isHexagonal) {
-       return;
+    // ensure canvas is ready (otherwise page refresh will cause error)
+    if (!canvas || !canvas.ready) {
+        return;
+    }
+    // if not hexagon unset weird and custom tools then return
+    if (!canvas.grid.isHexagonal) {
+        const measure= ui.controls.controls.find(c => c.name === "measure");
+        const tool = measure.tools.find(t => t.name === "ray");
+        if (game.activeTool === "burst" || game.activeTool === "emanation" || game.activeTool === "hex") {
+            let tool = "circle";
+            canvas[measure.layer].activate({tool});
+        }
+        if (game.activeTool === "line") {
+            let tool = "ray";
+            canvas[measure.layer].activate({tool});
+        }
+        return;
     }
     // find measureControls
     const measureControls = controls.find((c) => c.name === "measure");
@@ -236,68 +250,68 @@ Hooks.on("getSceneControlButtons", (controls) => {
             title: "Hex Template",
             icon: "fa-solid fa-hexagon",
             toolclip: {
-  //            src: "toolclips/tools/measure-rect.webm",
-              heading: "Hex Template",
-              items: buildItems("create", "move", "edit", "hide", "delete")
+                src: "/modules/pf2e-hex/src/hex.webm",
+                heading: "Hex Template",
+                items: buildItems("create", "move", "edit", "hide", "delete")
             }
         },
         {
-          name: "emanation",
-          title: "Emanation Template",
-          icon: "fa-regular fa-hexagon-xmark",
-          toolclip: {
-//            src: "toolclips/tools/measure-rect.webm",
-            heading: "Emanation Template",
-            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
-          }
+            name: "emanation",
+            title: "Emanation Template",
+            icon: "fa-regular fa-hexagon-xmark",
+            toolclip: {
+                src: "/modules/pf2e-hex/src/emanation.webm",
+                heading: "Emanation Template",
+                items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+            }
         },
         {
-          name: "burst",
-          title: "Burst Template",
-          icon: "fa-regular fa-hexagon",
-          toolclip: {
-//            src: "toolclips/tools/measure-rect.webm",
-            heading: "Burst Template",
-            items: buildItems("create", "move", "edit", "hide", "delete")
-          }
+            name: "burst",
+            title: "Burst Template",
+            icon: "fa-regular fa-hexagon",
+            toolclip: {
+                src: "/modules/pf2e-hex/src/burst.webm",
+                heading: "Burst Template",
+                items: buildItems("create", "move", "edit", "hide", "delete")
+            }
         },
         {
-          name: "cone",
-          title: "Cone Template",
-          icon: "fa-regular fa-rotate-270 fa-triangle",
-          toolclip: {
-//            src: "toolclips/tools/measure-rect.webm",
-            heading: "Cone Template",
-            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
-          }
+            name: "cone",
+            title: "Cone Template",
+            icon: "fa-regular fa-rotate-270 fa-triangle",
+            toolclip: {
+                src: "/modules/pf2e-hex/src/cone.webm",
+                heading: "Cone Template",
+                items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+            }
         },
         {
-          name: "line",
-          title: "Ray Template",
-          icon: "fa-regular fa-rotate-90 fa-pipe",
-          toolclip: {
-//            src: "toolclips/tools/measure-rect.webm",
-            heading: "Ray Template",
-            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
-          }
+            name: "line",
+            title: "Line Template",
+            icon: "fa-regular fa-rotate-90 fa-pipe",
+            toolclip: {
+                src: "/modules/pf2e-hex/src/line.webm",
+                heading: "Line Template",
+                items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+            }
         },
         {
-          name: "rect",
-          title: "CONTROLS.MeasureRect",
-          icon: "fa-regular fa-square",
-          toolclip: {
-//            src: "toolclips/tools/measure-rect.webm",
-            heading: "CONTROLS.MeasureRect",
-            items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
-          }
+            name: "rect",
+            title: "CONTROLS.MeasureRect",
+            icon: "fa-regular fa-square",
+            toolclip: {
+                src: "/modules/pf2e-hex/src/rect.webm",
+                heading: "CONTROLS.MeasureRect",
+                items: buildItems("create", "move", "edit", "hide", "delete", "rotate")
+            }
         },
         {
-          name: "clear",
-          title: "CONTROLS.MeasureClear",
-          icon: "fa-solid fa-trash",
-          visible: game.user.isGM,
-          onClick: () => canvas.templates.deleteAll(),
-          button: true
+            name: "clear",
+            title: "CONTROLS.MeasureClear",
+            icon: "fa-solid fa-trash",
+            visible: game.user.isGM,
+            onClick: () => canvas.templates.deleteAll(),
+            button: true
         }
       ]
 });
