@@ -1,3 +1,8 @@
+# 1.4.1
+
+- Add toolclips to measurement tools
+- Fix error when switching to square with a custom measurement tool
+
 # 1.4.0
 
 - Add `hex` template shape that highlights a single hex
