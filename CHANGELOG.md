@@ -1,3 +1,13 @@
+# 1.5.0
+
+- Template highlighting
+    - `line` rendering replaced with custom solution
+- Template rendering
+    - `line` no longer renders box and instead renders a line
+    - `line` text contains width if larger than a grid unit
+- Template distance snapping
+    - ensure that `emanation`,`burst`,`cone`, and `line` are a minimum of a grid unit
+
 # 1.4.2
 
 - Add localization support

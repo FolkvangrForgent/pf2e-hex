@@ -6,21 +6,172 @@ Hooks.once("libWrapper.Ready", () => {
             return wrapped();
         }
         const {t, distance, direction, angle, width} = this.document;
+        let endpoint;
         switch (t) {
             case "circle":
                 return new PIXI.Polygon(canvas.grid.getCircle({x: 0, y: 0}, distance));
             case "cone":
                 return new PIXI.Polygon(canvas.grid.getCone({x: 0, y: 0}, distance, direction, angle));
             case "rect":
-                let endpoint = canvas.grid.getTranslatedPoint({x: 0, y: 0}, direction, distance);
+                endpoint = canvas.grid.getTranslatedPoint({x: 0, y: 0}, direction, distance);
                 return new PIXI.Rectangle(0, 0, endpoint.x, endpoint.y).normalize();
             case "ray":
-                const p00 = Ray.fromAngle(0, 0, Math.toRadians(direction - 90), width * canvas.dimensions.distancePixels / 2).B;
-                const p01 = Ray.fromAngle(0, 0, Math.toRadians(direction + 90), width * canvas.dimensions.distancePixels / 2).B;
-                const p10 = canvas.grid.getTranslatedPoint(p00, direction, distance);
-                const p11 = canvas.grid.getTranslatedPoint(p01, direction, distance);
-                return new PIXI.Polygon(p00.x, p00.y, p10.x, p10.y, p11.x, p11.y, p01.x, p01.y);
+                endpoint = canvas.grid.getTranslatedPoint({x: 0, y: 0}, direction, distance);
+                return new PIXI.Polygon(0, 0, endpoint.x, endpoint.y);
         }
+    }, 'MIXED');
+});
+
+// ENHANCED LINE HIGHLIGHTING
+// TODO add angle as a factor to improve results
+function hexNeighborPriority(root, neighbor) {
+    if (root.q  === neighbor.q && root.r - 1 === neighbor.r && root.s + 1 === neighbor.s) {
+        return 6;
+    } else if (root.q + 1 === neighbor.q && root.r - 1 === neighbor.r && root.s === neighbor.s) {
+        return 5;
+    } else if (root.q - 1 === neighbor.q && root.r === neighbor.r && root.s + 1 === neighbor.s) {
+        return 4;
+    } else if (root.q + 1 === neighbor.q && root.r === neighbor.r && root.s - 1 === neighbor.s) {
+        return 3;
+    } else if (root.q - 1 === neighbor.q && root.r + 1 === neighbor.r && root.s === neighbor.s) {
+        return 2;
+    } else if (root.q === neighbor.q && root.r + 1 === neighbor.r && root.s - 1 === neighbor.s) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+// ENHANCED LINE HIGHLIGHTING
+function hexPath(origin, destination, steps) {
+    // find standard form (a*x + b*y + c = 0) parameters for calculating point distance
+    const a = (origin.y - destination.y);
+    const b = -(origin.x - destination.x);
+    const c = -(a * origin.x + b * origin.y);
+    // keep track of position found for each step
+    const path = [];
+    // get origin hex
+    let previousHex = canvas.grid.getCube(origin);
+    const previousPoint = canvas.grid.getCenterPoint(previousHex);
+    let previousDistance = Math.sqrt((previousPoint.x - destination.x) ** 2 + (previousPoint.y - destination.y) ** 2)
+    // store staring hex
+    path.push(previousPoint);
+    // continue till we have steps point
+    for (let i = 0; i < (steps - 1); i++) {
+        let currentHex;
+        let currentDistance;
+        let currentPoint;
+        let currentLineDistance;
+        // iterate of all adjacent spots
+        for (const candidateHex of canvas.grid.getAdjacentCubes(previousHex)) {
+            // check that point is closer to the destination
+            const candidatePoint = canvas.grid.getCenterPoint(candidateHex);
+            const candidateDistance = Math.sqrt((candidatePoint.x - destination.x) ** 2 + (candidatePoint.y - destination.y) ** 2)
+            if (candidateDistance < previousDistance) {
+                // check if this is the closest hex
+                const lineDistance = Math.abs(a * candidatePoint.x + b * candidatePoint.y + c) / Math.sqrt(a ** 2 + b ** 2)
+                // check if they are equal with tolerance
+                let equal = false;
+                if (currentLineDistance !== undefined && (Math.abs(currentLineDistance - lineDistance) < 1e-6)) {
+                    equal = true;
+                }
+                if (currentLineDistance === undefined || lineDistance < currentLineDistance || equal) {
+                    // logic to try to avoid randomness during ties
+                    if (equal) {
+                        if (!(hexNeighborPriority(previousHex, currentHex) <= hexNeighborPriority(previousHex, candidateHex))) {
+                            continue;
+                        }
+                    }
+                    // set information
+                    currentHex = candidateHex;
+                    currentPoint = candidatePoint;
+                    currentDistance = candidateDistance;
+                    currentLineDistance = lineDistance;
+                }
+            }
+        }
+        if (!currentHex) {
+            break;
+        }
+        path.push(currentPoint);
+        previousHex = currentHex;
+        previousDistance = currentDistance;
+    }
+    return path;
+}
+
+// ENHANCED LINE HIGHLIGHTING
+Hooks.once("libWrapper.Ready", () => {
+    libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._getGridHighlightPositions', function(wrapped) {
+        // only override logic on hexagonal grid
+        if (!canvas.grid.isHexagonal) {
+            return wrapped();
+        }
+        // only override logic on line template
+        if (this.areaShape != "line") {
+            return wrapped();
+        }
+
+        // get necessary information for calculations
+        const {x, y, direction, distance, width} = this.document;
+        // calculate how many hexs wide the template is
+        const hexWidth = Math.round(width / canvas.dimensions.distance);
+        // calculate how many hexs long the template is
+        const hexLength = Math.round(distance / canvas.grid.distance);
+
+        // keep track of positions
+        const linePositions = [];
+
+        // handle ray with no width with custom hex plotter
+        if (hexWidth === 1) {
+            // calculate ray destination
+            const destination = canvas.grid.getTranslatedPoint({x: x, y: y}, direction, distance);
+            linePositions.push(hexPath({x: x, y: y}, destination, hexLength));
+        // handle ray with no width with custom hex plotter and getDirectPath
+        } else {
+            // get origin and destination points
+            const originPoint = canvas.grid.getCenterPoint({x: x, y: y});
+            const destinationPoint = canvas.grid.getTranslatedPoint(originPoint, direction, distance);
+            //
+            let originPositions;
+            let destinationPositions;
+            //
+            if (Math.sign(((direction - ((Math.toDegrees((new Ray({x: x, y: y}, canvas.grid.getCenterPoint(originPoint))).angle) + 360) % 360) + 360) % 360) - 180) < 0) {
+                originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
+                for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                    originPositions.push(hex)
+                }
+                destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
+                for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                    destinationPositions.push(hex)
+                }
+            } else {
+                originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
+                for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                    originPositions.push(hex)
+                }
+                destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
+                for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                    destinationPositions.push(hex)
+                }
+            }
+            for (let index = 0; index <= hexWidth; index++) {
+                let originPosition = originPositions[index]
+                let destinationPosition = destinationPositions[index]
+                if (!originPosition || !destinationPosition) {
+                    break
+                }
+                linePositions.push(hexPath(originPosition, destinationPosition, hexLength).slice(0, hexLength))
+            }
+        }
+        // turn line positions into relevant highlight positions
+        const highlightPositions = [];
+        for (const positions of linePositions) {
+            for (const position of positions) {
+                highlightPositions.push(canvas.grid.getTopLeftPoint(position));
+            }
+        }
+        return highlightPositions;
     }, 'MIXED');
 });
 
@@ -134,7 +285,7 @@ Hooks.once("libWrapper.Ready", () => {
             return wrapped();
         }
         // get template information
-        const {distance, t} = this.document;
+        const {distance, width, t} = this.document;
         const grid = canvas.grid;
         if ( t === "rect" ) {
             const {A: {x: x0, y: y0}, B: {x: x1, y: y1}} = this.ray;
@@ -146,8 +297,13 @@ Hooks.once("libWrapper.Ready", () => {
         } else {
             if (this.areaShape == "hex") {
                 this.ruler.text = ``;
+            } else if (this.areaShape == "line") {
+                this.ruler.text = `${(Math.round(distance / canvas.grid.distance) * canvas.grid.distance)}${grid.units}`;
+                if (Math.round(width / canvas.grid.distance) > 1) {
+                    this.ruler.text += ` x ${(Math.round(width / canvas.grid.distance) * canvas.grid.distance)}${grid.units} `;
+                }
             } else {
-                this.ruler.text = `${(Math.round(distance * 10) / 10)}${grid.units}`;
+                this.ruler.text = `${(Math.round(distance / canvas.grid.distance) * canvas.grid.distance)}${grid.units}`;
             }
         }
         // check where to render ruler text
@@ -206,7 +362,6 @@ Hooks.once("libWrapper.Ready", () => {
 });
 
 // MEASUREMENT CONTROLS
-// TODO add toolclips
 Hooks.on("getSceneControlButtons", (controls) => {
     // ensure canvas is ready (otherwise page refresh will cause error)
     if (!canvas || !canvas.ready) {
@@ -392,6 +547,9 @@ Hooks.once("libWrapper.Ready", () => {
         } else {
             // compute the snapped distance for the measured template
             preview.document.distance = (Math.round(canvas.grid.measurePath([origin, destination]).distance / canvas.grid.distance) * canvas.grid.distance);
+            if (preview.document.distance === 0) {
+                preview.document.distance = canvas.grid.distance;
+            }
         }
         // compute the ray for angle
         const ray = new Ray(origin, destination);
