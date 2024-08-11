@@ -10,7 +10,25 @@
         },
         "setting": {
             "cone-template-angle-name": "Cone Template Angle",
-            "cone-template-angle-hint": "The internal angle to use for the cone template."
+            "cone-template-angle-hint": "The internal angle to use for the cone template.",
+            "target-helper-name": "Template Target Helper",
+            "target-helper-hint": "When placing a template on the board, a new dialog will show up allowing you to target all the tokens inside it.",
+            "highlight-collision-name": "Template Default Collision Type",
+            "highlight-collision-hint": "What collision type to use for template collision highlighting and template target helper.",
+            "collision-option-none": "None",
+            "collision-option-move": "Movement",
+            "collision-option-sight": "Sight",
+            "collision-option-light": "Light",
+            "collision-option-sound": "Sound"
+        },
+        "target": {
+            "opposition": "Target Opposition",
+            "neutral": "Target Neutral",
+            "party": "Target Party",
+            "self": "Target Self",
+            "collision_override": "Override Collision Type",
+            "delete": "Delete Template",
+            "target": "Target"
         }
     }
 }

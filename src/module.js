@@ -100,78 +100,106 @@ function hexPath(origin, destination, steps) {
     return path;
 }
 
-// ENHANCED LINE HIGHLIGHTING
+// ENHANCED LINE HIGHLIGHTING & HIGHLIGHT TEMPLATE WALL COLLISIONS
+// TODO get collision type from template when pf2e system support is added
 Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype._getGridHighlightPositions', function(wrapped) {
         // only override logic on hexagonal grid
         if (!canvas.grid.isHexagonal) {
             return wrapped();
         }
+        let highlightPositions = [];
         // only override logic on line template
         if (this.areaShape != "line") {
-            return wrapped();
-        }
-
-        // get necessary information for calculations
-        const {x, y, direction, distance, width} = this.document;
-        // calculate how many hexs wide the template is
-        const hexWidth = Math.round(width / canvas.dimensions.distance);
-        // calculate how many hexs long the template is
-        const hexLength = Math.round(distance / canvas.grid.distance);
-
-        // keep track of positions
-        const linePositions = [];
-
-        // handle ray with no width with custom hex plotter
-        if (hexWidth === 1) {
-            // calculate ray destination
-            const destination = canvas.grid.getTranslatedPoint({x: x, y: y}, direction, distance);
-            linePositions.push(hexPath({x: x, y: y}, destination, hexLength));
-        // handle ray with no width with custom hex plotter and getDirectPath
+            highlightPositions = wrapped();
         } else {
-            // get origin and destination points
-            const originPoint = canvas.grid.getCenterPoint({x: x, y: y});
-            const destinationPoint = canvas.grid.getTranslatedPoint(originPoint, direction, distance);
-            //
-            let originPositions;
-            let destinationPositions;
-            //
-            if (Math.sign(((direction - ((Math.toDegrees((new Ray({x: x, y: y}, canvas.grid.getCenterPoint(originPoint))).angle) + 360) % 360) + 360) % 360) - 180) < 0) {
-                originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
-                for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
-                    originPositions.push(hex)
-                }
-                destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
-                for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
-                    destinationPositions.push(hex)
-                }
+            // get necessary information for calculations
+            const {x, y, direction, distance, width} = this.document;
+            // calculate how many hexs wide the template is
+            const hexWidth = Math.round(width / canvas.dimensions.distance);
+            // calculate how many hexs long the template is
+            const hexLength = Math.round(distance / canvas.grid.distance);
+            // keep track of positions
+            const linePositions = [];
+            // handle ray with no width with custom hex plotter
+            if (hexWidth === 1) {
+                // calculate ray destination
+                const destination = canvas.grid.getTranslatedPoint({x: x, y: y}, direction, distance);
+                linePositions.push(hexPath({x: x, y: y}, destination, hexLength));
+            // handle ray with no width with custom hex plotter and getDirectPath
             } else {
-                originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
-                for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
-                    originPositions.push(hex)
+                // get origin and destination points
+                const originPoint = canvas.grid.getCenterPoint({x: x, y: y});
+                const destinationPoint = canvas.grid.getTranslatedPoint(originPoint, direction, distance);
+                //
+                let originPositions;
+                let destinationPositions;
+                //
+                if (Math.sign(((direction - ((Math.toDegrees((new Ray({x: x, y: y}, canvas.grid.getCenterPoint(originPoint))).angle) + 360) % 360) + 360) % 360) - 180) < 0) {
+                    originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
+                    for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                        originPositions.push(hex)
+                    }
+                    destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), Math.ceil(hexWidth / 2)).reverse();
+                    for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                        destinationPositions.push(hex)
+                    }
+                } else {
+                    originPositions = hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
+                    for (const hex of hexPath(originPoint, canvas.grid.getTranslatedPoint(originPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                        originPositions.push(hex)
+                    }
+                    destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
+                    for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
+                        destinationPositions.push(hex)
+                    }
                 }
-                destinationPositions = hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction + 90, width), Math.ceil(hexWidth / 2)).reverse();
-                for (const hex of hexPath(destinationPoint, canvas.grid.getTranslatedPoint(destinationPoint, direction - 90, width), (Math.floor(hexWidth / 2) + 1))) {
-                    destinationPositions.push(hex)
+                for (let index = 0; index <= hexWidth; index++) {
+                    let originPosition = originPositions[index]
+                    let destinationPosition = destinationPositions[index]
+                    if (!originPosition || !destinationPosition) {
+                        break
+                    }
+                    linePositions.push(hexPath(originPosition, destinationPosition, hexLength).slice(0, hexLength))
                 }
             }
-            for (let index = 0; index <= hexWidth; index++) {
-                let originPosition = originPositions[index]
-                let destinationPosition = destinationPositions[index]
-                if (!originPosition || !destinationPosition) {
-                    break
+            // turn line positions into relevant highlight positions
+            for (const positions of linePositions) {
+                for (const position of positions) {
+                    // check for collision
+                    highlightPositions.push(canvas.grid.getTopLeftPoint(position));
                 }
-                linePositions.push(hexPath(originPosition, destinationPosition, hexLength).slice(0, hexLength))
             }
         }
-        // turn line positions into relevant highlight positions
-        const highlightPositions = [];
-        for (const positions of linePositions) {
-            for (const position of positions) {
-                highlightPositions.push(canvas.grid.getTopLeftPoint(position));
+        // get collision type
+        const collisionType = game.settings.get('pf2e-hex', 'highlight-default-collision');
+        // do collision calculation
+        const highlightPositionsWithCollision = []
+        for (const position of highlightPositions) {
+            const centerPoint = {x: (position.x + (canvas.grid.size / 2)), y: (position.y + (canvas.grid.size / 2))};
+            // remove collisions far outside the scene rectangle
+            if ((centerPoint.x < canvas.dimensions.sceneRect.x - canvas.dimensions.size) ||
+                (centerPoint.x > (canvas.dimensions.sceneRect.x + canvas.dimensions.sceneRect.width + canvas.dimensions.size)) ||
+                (centerPoint.y < canvas.dimensions.sceneRect.y - canvas.dimensions.size) ||
+                (centerPoint.y > (canvas.dimensions.sceneRect.y + canvas.dimensions.sceneRect.height + canvas.dimensions.size))) {
+                continue;
             }
+            let collision = false;
+            if (collisionType in CONFIG.Canvas.polygonBackends) {
+                collision = CONFIG.Canvas.polygonBackends[collisionType].testCollision(
+                    this.center,
+                    {
+                        x: centerPoint.x,
+                        y: centerPoint.y,
+                    },
+                    {
+                        type: collisionType,
+                        mode: "any",
+                    });
+            }
+            highlightPositionsWithCollision.push({x: position.x, y: position.y, collision: collision});
         }
-        return highlightPositions;
+        return highlightPositionsWithCollision;
     }, 'MIXED');
 });
 
@@ -188,7 +216,7 @@ Hooks.once("libWrapper.Ready", () => {
     }, 'MIXED');
 });
 
-// SNAP POINT (chat fix)
+// SNAP POINT (chat message placement)
 Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'TemplateLayer.prototype.getSnappedPoint', function(wrapped, point) {
         // only override logic on hexagonal grid
@@ -318,44 +346,24 @@ Hooks.once("libWrapper.Ready", () => {
 });
 
 // HIGHLIGHT TEMPLATE WALL COLLISIONS
-// TODO get collision type from template when pf2e system support is added
 Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'MeasuredTemplate.prototype.highlightGrid', function(wrapped) {
         // only override logic on hexagonal grid
         if (!canvas.grid.isHexagonal) {
             return wrapped();
         }
-        // highlight border color
-        const borderColor = this.document.borderColor;
-        // highlight hex normal color
-        const normalColor = this.document.fillColor;
         // highlight hex collided color
         const collidedColor = new Color();
         // clear existing highlight layer
         canvas.interface.grid.clearHighlightLayer(this.highlightId);
-        // get highlight positions
-        const positions = this._getGridHighlightPositions();
-        // setup collision type
-        const collisionType = "move";
         // iterate over highlight positions checking and coloring accordingly
-        for (const {x, y} of positions) {
-            // check for collision
-            const hasCollision = CONFIG.Canvas.polygonBackends[collisionType].testCollision(
-                this.center,
-                {
-                    x: x + (canvas.grid.size / 2),
-                    y: y + (canvas.grid.size / 2),
-                },
-                {
-                    type: collisionType,
-                    mode: "any",
-                });
+        for (const {x, y, collision} of  this._getGridHighlightPositions()) {
             // color based on collision
             canvas.interface.grid.highlightPosition(this.highlightId, {
                 x: x,
                 y: y,
-                border: borderColor,
-                color: hasCollision ? collidedColor : normalColor,
+                border: this.document.borderColor,
+                color: collision ? collidedColor : this.document.fillColor,
             });
         }
     }, 'MIXED');
@@ -588,6 +596,124 @@ Hooks.once("libWrapper.Ready", () => {
     }, 'MIXED');
 });
 
+// TARGET HELPER
+Hooks.on('createMeasuredTemplate', targetHelper);
+async function targetHelper(template, context, userId) {
+    // only activate when on hex grid (the method should work on square grid but I'll leave that to pf2e-toolbelt implementation)
+    if (!canvas.grid.isHexagonal) {
+        return;
+    }
+    // only activate when the target helper is enabled
+    if (!game.settings.get('pf2e-hex', 'target-helper-enabled')) {
+        return;
+    }
+    // only activate when the user is the placer
+    if (game.user.id !== userId) {
+        return;
+    }
+    // prompt the user for input
+    let inputs;
+    try {
+        inputs = await foundry.applications.api.DialogV2.wait({
+            window: { title: "pf2e-hex.setting.target-helper-name" },
+            content:
+`<label><input type="checkbox" name="opposition" checked>` + game.i18n.localize("pf2e-hex.target.opposition") + `</label>
+<label><input type="checkbox" name="neutral" checked>` + game.i18n.localize("pf2e-hex.target.neutral") + `</label>
+<label><input type="checkbox" name="party" checked>` + game.i18n.localize("pf2e-hex.target.party") + `</label>
+<label><input type="checkbox" name="self" checked>` + game.i18n.localize("pf2e-hex.target.self") + `</label>
+<label><input type="checkbox" name="override">` + game.i18n.localize("pf2e-hex.target.collision_override") + `</label>
+<select name="collision">
+    <option value="none">` + game.i18n.localize("none") + `</option>
+    <option value="move">` + game.i18n.localize("move") + `</option>
+    <option value="sight">` + game.i18n.localize("sight") + `</option>
+    <option value="light">` + game.i18n.localize("light") + `</option>
+    <option value="sound">` + game.i18n.localize("sound") + `</option>
+</select>
+<label><input type="checkbox" name="delete">` + game.i18n.localize("pf2e-hex.target.delete") + `</label>`,
+            buttons: [{
+                action: "target",
+                label: "pf2e-hex.target.target",
+                callback: (event, button, dialog) => [button.form.elements.override.checked, button.form.elements.collision.value, button.form.elements.opposition.checked, button.form.elements.neutral.checked, button.form.elements.party.checked, button.form.elements.self.checked, button.form.elements.delete.checked]
+            }],
+        })
+    } catch {
+        return;
+    }
+    // parse user input
+    const override_collision = inputs[0];
+    const override_collision_type = inputs[1];
+    const target_opposition = inputs[2];
+    const target_neutral = inputs[3];
+    const target_party = inputs[4];
+    const target_self = inputs[5];
+    const delete_template = inputs[6];
+    // get tokens that intersect with bounding box of grid highlight
+    let tokens = canvas.tokens.quadtree.getObjects(canvas.interface.grid.getHighlightLayer(template.object.highlightId).getLocalBounds(undefined, true));
+    // iterate over tokens checking if any points of the template lie within token shape
+    const targetsIds = []
+    for (const position of template.object._getGridHighlightPositions()) {
+        const {x, y, collision} = position;
+        // get center coordinates instead of top left coordinates
+        const realX = (x + (canvas.grid.size / 2));
+        const realY = (y + (canvas.grid.size / 2));
+        if (tokens.size === 0) {
+            break;
+        } else {
+            for (const token of tokens) {
+                // translate position into local token position and check if shape contains it
+                if (token.shape.contains((realX - token.position.x), (realY - token.position.y))) {
+                    let effected = false;
+                    if (override_collision) {
+                        if (override_collision_type in CONFIG.Canvas.polygonBackends) {
+                            if (!CONFIG.Canvas.polygonBackends[override_collision_type].testCollision(
+                                template.object.center,
+                                {
+                                    x: position.x,
+                                    y: position.y,
+                                },
+                                {
+                                    type: override_collision_type,
+                                    mode: "any",
+                                })) {
+                                    effected = true;
+                            }
+                        } else {
+                            effected = true;
+                        }
+                    } else {
+                        if (!collision) {
+                            effected = true;
+                        }
+                    }
+                    if (effected) {
+                        // remove from tokens list
+                        tokens.delete(token);
+                        // filter token
+                        if (!token.document.hidden && token.actor?.isOfType("creature", "hazard", "vehicle", "familiar")) {
+                            if (((token.actor.type === "vehicle" || token.actor.type === "hazard") && target_neutral) || (token.actor.alliance === "opposition" && target_opposition) || (token.actor.alliance === "neutral" && target_neutral) || (token.actor.alliance === "party" && target_party)) {
+                                if (template.actor === token.actor) {
+                                    if (target_self) {
+                                        targetsIds.push(token.id);
+                                    }
+                                } else {
+                                    targetsIds.push(token.id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // target tokens
+    game.user.updateTokenTargets(targetsIds);
+    game.user.broadcastActivity({ targets: targetsIds });
+    // delete template
+    if (delete_template) {
+        template.delete();
+    }
+}
+
 // SETTINGS
 Hooks.once('init', () => {
     game.settings.register("pf2e-hex", "cone-template-angle", {
@@ -597,5 +723,28 @@ Hooks.once('init', () => {
         config: true,
         type: Number,
         default: 60
+    });
+    game.settings.register("pf2e-hex", "highlight-default-collision", {
+        name: "pf2e-hex.setting.highlight-collision-name",
+        hint: "pf2e-hex.setting.highlight-collision-hint",
+        scope: "world",
+        config: true,
+        type: String,
+        choices: {
+            "none": "pf2e-hex.setting.collision-option-none",
+            "move": "pf2e-hex.setting.collision-option-move",
+            "sight": "pf2e-hex.setting.collision-option-sight",
+            "light": "pf2e-hex.setting.collision-option-light",
+            "sound": "pf2e-hex.setting.collision-option-sound"
+        },
+        default: "sight"
+    });
+    game.settings.register("pf2e-hex", "target-helper-enabled", {
+        name: "pf2e-hex.setting.target-helper-name",
+        hint: "pf2e-hex.setting.target-helper-hint",
+        scope: "client",
+        config: true,
+        type: Boolean,
+        default: true
     });
 })

@@ -40,5 +40,8 @@ This module aims to enhance the use of hex grids while using the PF2e system. A 
     - `line` renders a line instead of box and text contains width if it is larger than a grid unit
 - Emulate `gridTemplates` behavior when on hex grids
 - Buttons for `emanation`, `burst`, `cone`, `line`, `hex`, and `rectangle` in `Measurement Controls`
+- Token target helper prompt on template creation
 - Settings
-    - `cone` internal angle can be configured (defaults to 60 degree)
+    - (GM) `cone` internal angle can be configured (defaults to 60 degree)
+    - (GM) Collision type to use for wall collision coloring and target helper check
+    - (User) Target helper can be enabled or disabled

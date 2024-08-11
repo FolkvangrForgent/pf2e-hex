@@ -1,3 +1,10 @@
+# 1.6.0
+
+- Template Target Helper
+    - add target helper (only activates on a hex grid)
+- Template highlighting
+    - move code to the highlight generation stage
+
 # 1.5.0
 
 - Template highlighting
@@ -28,7 +35,7 @@
 - Template angle snapping
     - `cone` is now the only template to snap to 30 degree angle increments
     - SHIFT + MouseWheel will rotate placed templates in 30 degree increments
-- fix error spam
+- Fix error spam
 
 # 1.3.0
 

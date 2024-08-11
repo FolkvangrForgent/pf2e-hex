@@ -27,7 +27,7 @@
         "type": "system",
         "compatibility": {
           "minimum": "6.2.0",
-          "verified": "6.2.0"
+          "verified": "6.2.1"
         }
       }
       ],
