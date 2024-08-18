@@ -1,3 +1,9 @@
+# 1.6.1
+
+- Bump verified core and system versions
+- Template Target Helper
+    - allow skipping if the control button is held down
+
 # 1.6.0
 
 - Template Target Helper

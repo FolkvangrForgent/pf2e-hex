@@ -171,6 +171,7 @@ Hooks.once("libWrapper.Ready", () => {
                 }
             }
         }
+        const pointSource = new foundry.canvas.sources.PointMovementSource({ object: this });
         // get collision type
         const collisionType = game.settings.get('pf2e-hex', 'highlight-default-collision');
         // do collision calculation
@@ -194,6 +195,7 @@ Hooks.once("libWrapper.Ready", () => {
                     },
                     {
                         type: collisionType,
+                        source: pointSource,
                         mode: "any",
                     });
             }
@@ -605,6 +607,10 @@ async function targetHelper(template, context, userId) {
     }
     // only activate when the target helper is enabled
     if (!game.settings.get('pf2e-hex', 'target-helper-enabled')) {
+        return;
+    }
+    // bail early if control is held
+    if (game.keyboard.isModifierActive("Control")) {
         return;
     }
     // only activate when the user is the placer

@@ -6,7 +6,7 @@
 
 This module aims to enhance the use of hex grids while using the PF2e system. A full list of features can be found below. If you are looking for a particular feature or are having an issue please open up an `Issue`!
 
-**WARNING** - This module uses a lot of function patching and so it is suggested to run it on the exact version of FoundryVTT that it is verified for. The latest version is verified for FVTT 12.330.
+**WARNING** - This module uses a lot of function patching and so it is suggested to run it on the exact version of FoundryVTT that it is verified for. The latest version is verified for FVTT 12.331.
 
 **NOTE** - There are no official area rules for rectangles in pf2e, as such I will try my best to leave their functionality as open as possible.
 
@@ -41,6 +41,7 @@ This module aims to enhance the use of hex grids while using the PF2e system. A 
 - Emulate `gridTemplates` behavior when on hex grids
 - Buttons for `emanation`, `burst`, `cone`, `line`, `hex`, and `rectangle` in `Measurement Controls`
 - Token target helper prompt on template creation
+    - Holding Control will skip the target helper if it is enabled
 - Settings
     - (GM) `cone` internal angle can be configured (defaults to 60 degree)
     - (GM) Collision type to use for wall collision coloring and target helper check
