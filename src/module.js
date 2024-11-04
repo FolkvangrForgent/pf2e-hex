@@ -790,3 +790,6 @@ Hooks.once('init', () => {
         default: true
     });
 })
+
+import { auraInitialization } from './aura.js';
+auraInitialization()

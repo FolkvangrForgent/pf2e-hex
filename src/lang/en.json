@@ -13,6 +13,8 @@
             "cone-template-angle-hint": "The internal angle to use for the cone template.",
             "target-helper-name": "Template Target Helper",
             "target-helper-hint": "When placing a template on the board, a new dialog will show up allowing you to target all the tokens inside it.",
+            "aura-helper-name": "Aura Automation Helper",
+            "aura-helper-hint": "When turned on, aura effects will be automatically added to tokens within the auras distance.",
             "highlight-collision-name": "Template Default Collision Type",
             "highlight-collision-hint": "What collision type to use for template collision highlighting and template target helper.",
             "collision-option-none": "None",
