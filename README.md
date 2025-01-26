@@ -10,6 +10,10 @@ This module aims to enhance the use of hex grids while using the PF2e system. A 
 
 **NOTE** - There are no official area rules for rectangles in pf2e, as such I will try my best to leave their functionality as open as possible.
 
+## Plan
+
+I plan to overhaul this module under a different name when v13 release and I have time. The updated module will support both pf2e and sf2e (when it releases as a separate system) as well as support enhancing both hex and gridless functionality.
+
 ## Features
 
 ### Templates
@@ -52,6 +56,10 @@ This module aims to enhance the use of hex grids while using the PF2e system. A 
 - Measurement
     - Custom `distanceTo` function for correct range calculation between tokens
 
+### Languages
+- English
+- Polish
+
 ## Not implemented
 
 ### Auras
@@ -66,15 +74,21 @@ I have no current intention to implement a custom flanking detector as I don't h
 
 Create a new feat, adding the following Rule Elements before adding it to the bonus feat section of all PCs. I highly suggest naming the feat.
 
-RollOption: `{"key":"RollOption","domain":"all","option":"off-guard","label":"Target is Off Guard","toggleable":true}`
-EphemeralEffect: `{"key":"EphemeralEffect","predicate":["off-guard"],"selectors":["strike-attack-roll","spell-attack-roll","strike-damage","attack-spell-damage"],"uuid":"Compendium.pf2e.conditionitems.Item.AJh5ex99aV6VTggg"}`
+##### RollOption
+`{"key":"RollOption","domain":"all","option":"off-guard","label":"Target is Off Guard","toggleable":true}`
+
+##### EphemeralEffect
+`{"key":"EphemeralEffect","predicate":["off-guard"],"selectors":["strike-attack-roll","spell-attack-roll","strike-damage","attack-spell-damage"],"uuid":"Compendium.pf2e.conditionitems.Item.AJh5ex99aV6VTggg"}`
 
 #### Effect
 
 Create a new effect, adding the following Rule Element. You will have to remember to drop this on each NPC to add the toggle. I highly suggest naming the effect and unchecking the `Show token icon?` button to hide it from appearing.
 
-RollOption: `{"key":"RollOption","domain":"all","option":"off-guard","label":"Target is Off Guard","toggleable":true}`
-EphemeralEffect: `{"key":"EphemeralEffect","predicate":["off-guard"],"selectors":["strike-attack-roll","spell-attack-roll","strike-damage","attack-spell-damage"],"uuid":"Compendium.pf2e.conditionitems.Item.AJh5ex99aV6VTggg"}`
+##### RollOption
+`{"key":"RollOption","domain":"all","option":"off-guard","label":"Target is Off Guard","toggleable":true}`
+
+##### EphemeralEffect
+`{"key":"EphemeralEffect","predicate":["off-guard"],"selectors":["strike-attack-roll","spell-attack-roll","strike-damage","attack-spell-damage"],"uuid":"Compendium.pf2e.conditionitems.Item.AJh5ex99aV6VTggg"}`
 
 ### Large Token Drag Movement Highlighting
 

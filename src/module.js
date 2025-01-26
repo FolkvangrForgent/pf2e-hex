@@ -602,7 +602,6 @@ Hooks.once("libWrapper.Ready", () => {
 import { getHexagonalShape, convertShapeToGridPolygon, convertGridPolygonToGridPositions} from './shapes.js';
 Hooks.once("libWrapper.Ready", () => {
     libWrapper.register('pf2e-hex', 'CONFIG.Token.objectClass.prototype.distanceTo', function(wrapped, target, opts) {
-        console.warn(target)
         // only override logic on hexagonal grid
         if (!canvas.grid.isHexagonal) {
             return wrapped(target, opts);

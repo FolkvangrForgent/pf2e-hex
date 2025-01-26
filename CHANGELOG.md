@@ -1,3 +1,9 @@
+# 1.7.1
+
+- Add Polish Translation (Lioheart)
+- Remove debug console statement
+- Bump verified system version
+
 # 1.7.0
 
 - Bump verified system version
