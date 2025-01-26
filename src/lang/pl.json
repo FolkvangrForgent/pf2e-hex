@@ -1,0 +1,34 @@
+{
+    "pf2e-hex": {
+        "template": {
+            "hex": "Szablon heksa",
+            "emanation": "Szablon emanacji",
+            "burst": "Szablon wybuchu",
+            "cone": "Szablon stożka",
+            "line": "Szablon linii",
+            "rect": "Szablon prostokąta"
+        },
+        "setting": {
+            "cone-template-angle-name": "Kąt szablonu stożka",
+            "cone-template-angle-hint": "Kąt wewnętrzny używany dla szablonu stożka.",
+            "target-helper-name": "Pomocnik celu szablonu",
+            "target-helper-hint": "Po umieszczeniu szablonu na planszy pojawi się nowe okno dialogowe, pozwalające na namierzenie wszystkich znajdujących się w nim tokenów.",
+            "highlight-collision-name": "Szablon domyślnego typu kolizji",
+            "highlight-collision-hint": "Jakiego typu kolizji użyć do podświetlenia kolizji szablonu i pomocnika celu szablonu.",
+            "collision-option-none": "Brak",
+            "collision-option-move": "Ruch",
+            "collision-option-sight": "Wzrok",
+            "collision-option-light": "Światło",
+            "collision-option-sound": "Dźwięk"
+        },
+        "target": {
+            "opposition": "Wrogi cel",
+            "neutral": "Neutralny cel",
+            "party": "Drużynowy cel",
+            "self": "Cel na siebie",
+            "collision_override": "Zastąpienie typu kolizji",
+            "delete": "Usuń szablon",
+            "target": "Cel"
+        }
+    }
+}

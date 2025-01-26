@@ -18,6 +18,11 @@
       "lang": "en",
       "name": "English",
       "path": "src/lang/en.json"
+    },
+    {
+      "lang": "pl",
+      "name": "Polski",
+      "path": "src/lang/pl.json"
     }
   ],
   "relationships": {
