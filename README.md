@@ -2,6 +2,12 @@
 ![Latest Release Download Count](https://img.shields.io/github/downloads/FolkvangrForgent/pf2e-hex/latest/module.zip)
 ![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fpf2e-hex&colorB=4aa94a)
 
+# IF YOU ARE LOOKING FOR A V13 VERSION OF THIS MODULE SEE ITS REPLACMENT HERE: [PF2e & SF2e - Grid Enhancements](https://github.com/FolkvangrForgent/f2e-grid-enhancements)
+
+
+
+
+
 # PF2e Hex Enhancements
 
 This module aims to enhance the use of hex grids while using the PF2e system. A full list of features can be found below. If you are looking for a particular feature or are having an issue please open up an `Issue`!
